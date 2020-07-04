@@ -10,14 +10,13 @@
       </div>
       <div class="form">
         <input type="text" v-model="url" placeholder="url" />
-        <input
-          type="text"
-          v-model="token"
-          placeholder="jwt token"
-          class="token"
-        />
+        <input type="text" v-model="token" placeholder="jwt token" class="token" />
+        <div>
+          <input type="text" v-model="fileID" placeholder="file id" />
+          <input type="file" @change="previewFile" />
+        </div>
         <textarea rows="10" v-model="body" placeholder="key: value"></textarea>
-        <pre>{{ jsonBody }}</pre>
+        <pre>{{ jsonPreview ? jsonPreview : 'JSON Mal Formatado' }}</pre>
       </div>
     </div>
     <div class="response">
@@ -56,6 +55,8 @@ export default {
       url: "",
       body: "",
       token: "",
+      fileID: "",
+      file: "",
       data: null,
       headers: null,
       request: null,
@@ -64,10 +65,26 @@ export default {
     };
   },
   computed: {
+    jsonPreview() {
+      try {
+        return JSON.parse(this.body);
+      } catch (error) {
+        console.error("Erro na chave", error);
+      }
+    },
     jsonBody() {
       if (this.body) {
         try {
-          return JSON.parse(this.body);
+          const formData = new FormData();
+          const object = JSON.parse(this.body);
+          const keys = Object.keys(object);
+          keys.forEach(key => {
+            formData.append(key, object[key]);
+          });
+          if (this.file && this.fileID) {
+            formData.append(this.fileID, this.file);
+          }
+          return formData;
         } catch (error) {
           console.error("Erro na chave", error);
         }
@@ -75,6 +92,9 @@ export default {
     }
   },
   methods: {
+    previewFile(event) {
+      this.file = event.target.files[0];
+    },
     resetData() {
       this.data = null;
       this.headers = null;
@@ -141,6 +161,9 @@ export default {
     body() {
       window.localStorage.body = this.body;
     },
+    fileID() {
+      window.localStorage.fileID = this.fileID;
+    },
     token() {
       if (!this.token) {
         delete axios.defaults.headers.common["Authorization"];
@@ -153,6 +176,10 @@ export default {
       window.localStorage.url !== "undefined" ? window.localStorage.url : "";
     this.body =
       window.localStorage.body !== "undefined" ? window.localStorage.body : "";
+    this.fileID =
+      window.localStorage.fileID !== "undefined"
+        ? window.localStorage.fileID
+        : "";
     this.token =
       window.localStorage.token !== "undefined"
         ? window.localStorage.token
@@ -210,6 +237,10 @@ textarea {
   border: none;
   padding: 10px;
   border-radius: 2px;
+}
+
+input[type="file"] {
+  color: white;
 }
 
 textarea {
